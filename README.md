@@ -5,7 +5,7 @@ if you don't install `zendesk_apps_tools`, please run:
 gem install rake
 gem install zendesk_apps_tools
 
-# if can't install zendesk_developer_tools, run command:
+# if can't install zendesk_apps_tools, run command:
 gem install zendesk_apps_tools -- --with-cflags="-Wno-error=implicit-function-declaration"
 ```
 
