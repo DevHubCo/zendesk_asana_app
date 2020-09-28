@@ -12,9 +12,10 @@ $(function() {
           data: {
             name: $("#name").val(),
             notes: $("#notes").val(),
-            projects: [parseInt($("#project-id").val())]
+            projects: $("#project-id").val(),
           }
         };
+        console.log(task)
         sendTaskData(task, client);
       }
     });
