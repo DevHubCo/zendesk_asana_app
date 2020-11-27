@@ -1,26 +1,29 @@
 <!DOCTYPE html>
 <html>
+
 <head>
   <meta charset="utf-8">
   <link href="https://cdn.jsdelivr.net/bootstrap/3.3.6/css/bootstrap.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/combine/npm/@zendeskgarden/css-bedrock@7.0.21,npm/@zendeskgarden/css-utilities@4.3.0">
+  <link rel="stylesheet"
+    href="https://cdn.jsdelivr.net/combine/npm/@zendeskgarden/css-bedrock@7.0.21,npm/@zendeskgarden/css-utilities@4.3.0">
   <link href="main.css" rel="stylesheet">
 </head>
+
 <body>
   <div id="content"></div>
-  <script id="add_task-hdbs" type="text/x-handlebars-template">
+  <script id="add-task-template" type="text/x-handlebars-template">
     <form id="task-form">
-      <label for="name">Task name</label>
-      <input type="text" name="name" id="name" maxlength="50" placeholder="50 characters or less" />
-      <label for="notes">Notes</label>
-      <textarea name="notes" id="notes" placeholder="optional" />
-      <input type="hidden" name="project-id" id="project-id" value="1192878389281525" />
+      <label for="task_name">Task Name</label>
+      <input type="text" name="task_name" id="task_name" class="form-control" maxlength="50" placeholder="50 characters or less" value="{{task_name}}" />
+      <label for="url">Task URL</label>
+      <input name="url" id="url" class="form-control" placeholder="optional" value="{{task_url}}" />
       <button id="add-btn" class="btn btn-primary btn-small">Add Task</button>
     </form>
-  </script>  
+  </script>
   <script src="https://cdn.jsdelivr.net/jquery/3.0.0/jquery.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/handlebars.js/4.0.5/handlebars.min.js"></script>
   <script src="https://static.zdassets.com/zendesk_app_framework_sdk/2.0/zaf_sdk.min.js"></script>
-  <script type="text/javascript" src="main.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/handlebars.js/4.0.5/handlebars.min.js"></script>
+  <script src="main.js"></script>
 </body>
+
 </html>

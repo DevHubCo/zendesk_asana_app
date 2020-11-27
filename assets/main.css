@@ -1,20 +1,12 @@
 body {
-    font-size: 13px;
+	font-size: 14px;
 }
-  
+
 label {
-    padding-top: 8px;
+	margin-top: 12px;
 }
-  
-#name, #notes {
-    width: 95%;
-}
-  
-#notes {
-    height: 5em;
-}
-  
+
 button {
-    margin-top: 8px;
-    margin-bottom: 12px;
+	margin-top: 12px;
+	margin-bottom: 12px;
 }
