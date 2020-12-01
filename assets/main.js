@@ -1,66 +1,101 @@
-const ASANA_API = 'https://app.asana.com/api/1.0/tasks'
-const ASANA_AUTHORIZATION = 'Bearer 1/1192875441845806:83153e157aedc4314451ee5dcf6bd2a2'
+const API_ENDPOINT = 'https://app.asana.com/api'
+const ASANA_API = API_ENDPOINT + '/1.0/tasks'
+const ASANA_PROJECTS_API = API_ENDPOINT + '/1.0/projects?limit=10'
+const ASANA_WORKSPACES_API = API_ENDPOINT + '/1.0/workspaces?limit=10'
+const ASANA_AUTHORIZATION = 'Bearer 1/1192871394443018:4325390586783dbb28e1dc37c907e31a'
 
-$(function () {
-	const client = ZAFClient.init()
-	client.invoke('resize', { width: '100%', height: '250px' })
-	showForm(client)
+// Initialize Vue
+new Vue({
+	el: '#app',
+	data() {
+		return {
+			isAddingTask: false,
+			isSelectingWorkspace: false,
+			isAuth: false,
+			isLoading: false,
 
-	$('#add-btn').click(function (e) {
-		e.preventDefault()
+			client: null, // ZAT instance
 
-		if ($('#task_name').val().length === 0) {
-			client.invoke('notify', "Name can't be blank.", 'error')
-		} else {
-			const task = {
-				data: {
-					task_name: $('#task_name').val(),
-					task_url: $('#task_url').val(),
-					projects: $('#project-id').val()
-				}
-			}
-			console.log(task)
-			sendTaskData(client, task)
+			task: {
+				name: '',
+				url: ''
+			},
+			workspaces: []
 		}
-	})
+	},
+	mounted() {
+		// Initialize ZAT client
+		const client = ZAFClient.init()
+		this.client = client
+		client.invoke('resize', { width: '100%', height: '250px' })
+
+		// Get ticket title & id
+		client.get('ticket').then(data => {
+			this.task.name = data.ticket.subject
+			this.task.url = `${location.origin}/agent/tickets/${data.ticket.id}`
+			this.isAddingTask = true
+		})
+	},
+	methods: {
+		addTask() {
+			this.isLoading = true
+			this.getWorkspaces()
+				.then(res => {
+					console.log(res)
+					this.isAddingTask = false
+					this.isSelectingWorkspace = true
+				})
+				.catch(err => {
+					const msg = `Error ${err.status}: ${err.responseJSON.errors[0].message}`
+					this.client.invoke('notify', msg, 'error')
+				})
+				.finally(() => {
+					this.isLoading = false
+				})
+		},
+		getProjects() {
+			return new Promise(function (resolve, reject) {
+				return $.ajax({
+					url: ASANA_PROJECTS_API,
+					type: 'GET',
+					headers: { Authorization: ASANA_AUTHORIZATION },
+					contentType: 'application/json'
+				})
+					.then(function (res) {
+						resolve(res)
+					})
+					.catch(function (err) {
+						reject(err)
+					})
+			})
+		},
+		getWorkspaces() {
+			return new Promise(function (resolve, reject) {
+				return $.ajax({
+					url: ASANA_WORKSPACES_API,
+					type: 'GET',
+					headers: { Authorization: ASANA_AUTHORIZATION },
+					contentType: 'application/json'
+				})
+					.then(function (res) {
+						resolve(res)
+					})
+					.catch(function (err) {
+						reject(err)
+					})
+			})
+		},
+		selectWorkspace() {}
+	}
 })
 
-function sendTaskData(client, task) {
-	const settings = {
-		url: ASANA_API,
-		type: 'POST',
-		contentType: 'application/json',
-		headers: { Authorization: ASANA_AUTHORIZATION },
-		data: JSON.stringify(task)
-	}
-
-	client.request(settings).then(
-		function () {
-			client.invoke('notify', 'Task successfully added to Asana.')
-			$('#task-form')[0].reset()
-		},
-		function (err) {
-			const msg = `Error${err.status} ${err.statusText}`
-			client.invoke('notify', msg, 'error')
+function checkAsanaToken() {
+	return new Promise(function (resolve, reject) {
+		const TOKEN = localStorage.getItem('ASANA_TOKEN')
+		if (TOKEN) {
+			resolve(TOKEN)
+		} else {
+			reject()
 		}
-	)
-
-	client.invoke('notify', 'Task sent! Please wait...')
-}
-
-function showForm(client) {
-	let requester_data = {
-		task_name: '',
-		task_url: ''
-	}
-
-	client.get('ticket').then(function (data) {
-		requester_data.task_name = data.ticket.subject
-		requester_data.task_url = `https://devhubco.zendesk.com/agent/tickets/${data.ticket.id}`
-
-		const source = $('#add-task-template').html(),
-			template = Handlebars.compile(source),
-			html = template(requester_data)
-		$('#content').html(html)
 	})
 }

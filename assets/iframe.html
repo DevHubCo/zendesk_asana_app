@@ -4,26 +4,37 @@
 <head>
   <meta charset="utf-8">
   <link href="https://cdn.jsdelivr.net/bootstrap/3.3.6/css/bootstrap.min.css" rel="stylesheet">
-  <link rel="stylesheet"
-    href="https://cdn.jsdelivr.net/combine/npm/@zendeskgarden/css-bedrock@7.0.21,npm/@zendeskgarden/css-utilities@4.3.0">
-  <link href="main.css" rel="stylesheet">
+  <link href="./main.css" rel="stylesheet">
 </head>
 
 <body>
-  <div id="content"></div>
-  <script id="add-task-template" type="text/x-handlebars-template">
-    <form id="task-form">
-      <label for="task_name">Task Name</label>
-      <input type="text" name="task_name" id="task_name" class="form-control" maxlength="50" placeholder="50 characters or less" value="{{task_name}}" />
-      <label for="url">Task URL</label>
-      <input name="url" id="url" class="form-control" placeholder="optional" value="{{task_url}}" />
-      <button id="add-btn" class="btn btn-primary btn-small">Add Task</button>
-    </form>
-  </script>
-  <script src="https://cdn.jsdelivr.net/jquery/3.0.0/jquery.min.js"></script>
+  <div id="app">
+    <div v-if="isAddingTask === true">
+      <label for="taskName">Task Name</label>
+      <input class="form-control" name="taskName" placeholder="50 characters or less" type="text" v-model="task.name" />
+      <label for="taskUrl">Task URL</label>
+      <input class="form-control" name="taskUrl" placeholder="optional" v-model="task.url" />
+      <button class="btn btn-primary btn-small" @click="addTask">Add Task</button>
+    </div>
+
+    <div v-if="isSelectingWorkspace === true">
+      <label for="workspaceName">Workspace</label>
+      <select class="form-control" name="workspaceName" type="text" v-model="workspace.gid">
+        <option v-for="workspace in workspaces" :value="workspace.gid">{{ workspace.name }}</option>
+      </select>
+      <button class="btn btn-primary btn-small" @click="selectWorkspace">Select</button>
+    </div>
+
+    <div id="loading-wrapper" v-if="isLoading === true"></div>
+  </div>
+
+  <div id="add-task"></div>
+  <div id="select-workspace"></div>
+
   <script src="https://static.zdassets.com/zendesk_app_framework_sdk/2.0/zaf_sdk.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/handlebars.js/4.0.5/handlebars.min.js"></script>
-  <script src="main.js"></script>
+  <script src="https://cdn.jsdelivr.net/jquery/3.0.0/jquery.min.js"></script>
+  <script src="./vue.min.js"></script>
+  <script src="./main.js"></script>
 </body>
 
 </html>
