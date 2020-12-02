@@ -1,101 +1,198 @@
 const API_ENDPOINT = 'https://app.asana.com/api'
-const ASANA_API = API_ENDPOINT + '/1.0/tasks'
-const ASANA_PROJECTS_API = API_ENDPOINT + '/1.0/projects?limit=10'
-const ASANA_WORKSPACES_API = API_ENDPOINT + '/1.0/workspaces?limit=10'
-const ASANA_AUTHORIZATION = 'Bearer 1/1192871394443018:4325390586783dbb28e1dc37c907e31a'
+const ASANA_PROJECTS_API = API_ENDPOINT + '/1.0/projects?limit=30'
+const ASANA_TASK_API = API_ENDPOINT + '/1.0/tasks'
+const ASANA_WORKSPACES_API = API_ENDPOINT + '/1.0/workspaces?limit=30'
 
-// Initialize Vue
-new Vue({
-	el: '#app',
-	data() {
-		return {
-			isAddingTask: false,
-			isSelectingWorkspace: false,
-			isAuth: false,
-			isLoading: false,
+$(function () {
+	// Initialize ZAT client
+	const client = ZAFClient.init()
+	client.invoke('resize', { width: '100%', height: '250px' })
 
-			client: null, // ZAT instance
+	// Initialize Vue
+	new Vue({
+		el: '#app',
+		data() {
+			return {
+				isAddingTask: false,
+				isSelectingProject: false,
+				isSelectingWorkspace: false,
+				isLoading: true,
+				isVerifying: false,
 
-			task: {
-				name: '',
-				url: ''
+				project: {
+					id: null,
+					list: []
+				},
+				task: {
+					name: '',
+					note: ''
+				},
+				token: localStorage.getItem('ASANA_PERSONAL_ACCESS_TOKEN') || '',
+				workspace: {
+					id: null,
+					list: []
+				}
+			}
+		},
+		mounted() {
+			// Get current ticket name & id
+			client.get('ticket').then(data => {
+				// Autofill task name & note
+				this.task.name = data.ticket.subject
+				this.task.note = `${location.origin}/agent/tickets/${data.ticket.id}`
+
+				this.isAddingTask = true
+				this.isLoading = false
+
+				// Make <body> visible
+				document.body.style.display = 'block'
+			})
+		},
+		methods: {
+			addTask() {
+				if (!this.token) {
+					this.isVerifying = true
+					return
+				}
+
+				this.isLoading = true
+				this.getWorkspaces()
+					.then(res => {
+						this.workspace.list = res.data
+
+						this.isAddingTask = false
+						this.isSelectingWorkspace = true
+					})
+					.catch(err => {
+						const msg = `Error ${err.status}: ${err.responseJSON.errors[0].message}`
+						client.invoke('notify', msg, 'error')
+					})
+					.finally(() => (this.isLoading = false))
 			},
-			workspaces: []
-		}
-	},
-	mounted() {
-		// Initialize ZAT client
-		const client = ZAFClient.init()
-		this.client = client
-		client.invoke('resize', { width: '100%', height: '250px' })
+			backToAddTask() {
+				this.workspace.id = null
+				this.workspace.list = []
+				this.isSelectingWorkspace = false
+				this.isAddingTask = true
+			},
+			backToSelectWorkspace() {
+				this.project.id = null
+				this.project.list = []
+				this.isSelectingProject = false
+				this.isSelectingWorkspace = true
+			},
+			clearToken() {
+				this.token = ''
+				this.isVerifying = false
+				localStorage.removeItem('ASANA_PERSONAL_ACCESS_TOKEN')
+			},
+			confirmAsanaToken() {
+				if (!this.token) return
+				this.isVerifying = false
+				this.token = `Bearer ${this.token}`
+				this.$nextTick(() => localStorage.setItem('ASANA_PERSONAL_ACCESS_TOKEN', this.token))
+			},
+			createTask() {
+				if (!this.project.id) {
+					client.invoke('notify', 'Please select project', 'error')
+					return
+				} else if (!this.workspace.id) {
+					client.invoke('notify', 'Please select workspace', 'error')
+					return
+				}
 
-		// Get ticket title & id
-		client.get('ticket').then(data => {
-			this.task.name = data.ticket.subject
-			this.task.url = `${location.origin}/agent/tickets/${data.ticket.id}`
-			this.isAddingTask = true
-		})
-	},
-	methods: {
-		addTask() {
-			this.isLoading = true
-			this.getWorkspaces()
-				.then(res => {
-					console.log(res)
-					this.isAddingTask = false
-					this.isSelectingWorkspace = true
-				})
-				.catch(err => {
-					const msg = `Error ${err.status}: ${err.responseJSON.errors[0].message}`
-					this.client.invoke('notify', msg, 'error')
-				})
-				.finally(() => {
-					this.isLoading = false
-				})
-		},
-		getProjects() {
-			return new Promise(function (resolve, reject) {
-				return $.ajax({
-					url: ASANA_PROJECTS_API,
-					type: 'GET',
-					headers: { Authorization: ASANA_AUTHORIZATION },
-					contentType: 'application/json'
-				})
-					.then(function (res) {
-						resolve(res)
+				this.isLoading = true
+				this.postTask()
+					.then(res => {
+						console.log(res)
+						client.invoke('notify', 'Task created. Please check your Asana board', 'notice')
 					})
-					.catch(function (err) {
-						reject(err)
+					.catch(err => {
+						const msg = `Error ${err.status}: ${err.responseJSON.errors[0].message}`
+						client.invoke('notify', msg, 'error')
 					})
-			})
-		},
-		getWorkspaces() {
-			return new Promise(function (resolve, reject) {
-				return $.ajax({
-					url: ASANA_WORKSPACES_API,
-					type: 'GET',
-					headers: { Authorization: ASANA_AUTHORIZATION },
-					contentType: 'application/json'
+					.finally(() => (this.isLoading = false))
+			},
+			getProjects() {
+				return new Promise((resolve, reject) => {
+					return $.ajax({
+						url: `${ASANA_PROJECTS_API}&workspace=${this.workspace.id}`,
+						type: 'GET',
+						headers: { Authorization: this.token },
+						contentType: 'application/json'
+					})
+						.then(res => resolve(res))
+						.catch(err => reject(err))
 				})
-					.then(function (res) {
-						resolve(res)
+			},
+			getWorkspaces() {
+				return new Promise((resolve, reject) => {
+					return $.ajax({
+						url: ASANA_WORKSPACES_API,
+						type: 'GET',
+						headers: { Authorization: this.token },
+						contentType: 'application/json'
 					})
-					.catch(function (err) {
-						reject(err)
+						.then(res => resolve(res))
+						.catch(err => reject(err))
+				})
+			},
+			postTask() {
+				return new Promise((resolve, reject) => {
+					return $.ajax({
+						url: ASANA_TASK_API,
+						type: 'POST',
+						headers: { Authorization: this.token },
+						data: JSON.stringify({
+							data: {
+								approval_status: 'pending',
+								completed: false,
+								liked: false,
+								name: this.task.name,
+								notes: this.task.note,
+								projects: [this.project.id],
+								workspace: this.workspace.id
+							}
+						}),
+						contentType: 'application/json'
 					})
-			})
-		},
-		selectWorkspace() {}
-	}
-})
+						.then(res => resolve(res))
+						.catch(err => reject(err))
+				})
+			},
+			selectWorkspace() {
+				if (!this.workspace.id) {
+					this.backToSelectWorkspace()
+					client.invoke('notify', 'Please select workspace', 'error')
+					return
+				}
 
-function checkAsanaToken() {
-	return new Promise(function (resolve, reject) {
-		const TOKEN = localStorage.getItem('ASANA_TOKEN')
-		if (TOKEN) {
-			resolve(TOKEN)
-		} else {
-			reject()
+				this.isLoading = true
+				this.getProjects()
+					.then(res => {
+						this.project.list = res.data
+
+						this.isSelectingWorkspace = false
+						this.isSelectingProject = true
+					})
+					.catch(err => {
+						const msg = `Error ${err.status}: ${err.responseJSON.errors[0].message}`
+						client.invoke('notify', msg, 'error')
+					})
+					.finally(() => (this.isLoading = false))
+			},
+			verifyAsanaToken() {
+				return new Promise((resolve, reject) => {
+					return $.ajax({
+						url: `${ASANA_PROJECTS_API}&workspace=${this.workspace.id}`,
+						type: 'GET',
+						headers: { Authorization: this.token },
+						contentType: 'application/json'
+					})
+						.then(res => resolve(res))
+						.catch(err => reject(err))
+				})
+			}
 		}
 	})
-}
+})

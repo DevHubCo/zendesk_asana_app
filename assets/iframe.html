@@ -4,7 +4,74 @@
 <head>
   <meta charset="utf-8">
   <link href="https://cdn.jsdelivr.net/bootstrap/3.3.6/css/bootstrap.min.css" rel="stylesheet">
-  <link href="./main.css" rel="stylesheet">
+  <style type="text/css">
+    body {
+      display: none;
+      font-size: 14px;
+      padding: 0 5px;
+    }
+
+    #auth-form-wrapper {
+      display: block;
+      position: fixed;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      left: 0;
+      background: rgba(255, 255, 255, 0.9);
+      z-index: 89;
+    }
+
+    #auth-form {
+      display: block;
+      position: absolute;
+      top: 5%;
+      right: 5%;
+      bottom: 5%;
+      left: 5%;
+      padding: 10px;
+      background: #fff;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+    }
+
+    #loading-wrapper {
+      cursor: wait;
+      display: block;
+      position: fixed;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      left: 0;
+      padding-bottom: 40px;
+      background: rgba(255, 255, 255, 0.5);
+      z-index: 99;
+    }
+
+    label {
+      margin-top: 12px;
+    }
+
+    textarea {
+      resize: none;
+    }
+
+    a {
+      font-size: 12px;
+      color: #286090;
+    }
+
+    a.external-link {
+      display: block;
+      margin-top: 5px;
+      line-height: 24px;
+    }
+
+    button {
+      margin-top: 12px;
+      margin-bottom: 12px;
+    }
+  </style>
 </head>
 
 <body>
@@ -12,28 +79,55 @@
     <div v-if="isAddingTask === true">
       <label for="taskName">Task Name</label>
       <input class="form-control" name="taskName" placeholder="50 characters or less" type="text" v-model="task.name" />
-      <label for="taskUrl">Task URL</label>
-      <input class="form-control" name="taskUrl" placeholder="optional" v-model="task.url" />
-      <button class="btn btn-primary btn-small" @click="addTask">Add Task</button>
+      <label for="taskNote">Task Note</label>
+      <textarea class="form-control" name="taskNote" placeholder="optional" rows="4" v-model="task.note"></textarea>
+      <button class="btn btn-primary" type="button" :class="{ disabled: isLoading }" :disabled="isLoading"
+        @click="addTask">Add Task</button>
+      <button class="btn btn-danger" type="button" v-if="token && !isVerifying" :class="{ disabled: isLoading }"
+        :disabled="isLoading" @click="clearToken">Clear Token</button>
     </div>
 
     <div v-if="isSelectingWorkspace === true">
       <label for="workspaceName">Workspace</label>
-      <select class="form-control" name="workspaceName" type="text" v-model="workspace.gid">
-        <option v-for="workspace in workspaces" :value="workspace.gid">{{ workspace.name }}</option>
+      <select class="form-control" name="workspaceName" type="text" v-model="workspace.id">
+        <option v-for="workspace in workspace.list" :value="workspace.gid">{{ workspace.name }}</option>
       </select>
-      <button class="btn btn-primary btn-small" @click="selectWorkspace">Select</button>
+      <button class="btn btn-primary" type="button" :class="{ disabled: isLoading || !workspace.id }"
+        :disabled="isLoading" @click="selectWorkspace">Select</button>
+      <button class="btn btn-secondary" type="button" @click="backToAddTask">Back</button>
+    </div>
+
+    <div v-if="isSelectingProject === true">
+      <label for="projectName">Project</label>
+      <select class="form-control" name="projectName" type="text" v-model="project.id">
+        <option v-for="project in project.list" :value="project.gid">{{ project.name }}</option>
+      </select>
+      <button class="btn btn-primary" type="button" :class="{ disabled: isLoading || !project.id }"
+        :disabled="isLoading" @click="createTask">Create Task</button>
+      <button class="btn btn-secondary" type="button" @click="backToSelectWorkspace">Back</button>
+    </div>
+
+    <div id="auth-form-wrapper" v-if="isVerifying === true">
+      <div id="auth-form">
+        <label for="token">Asana Authorization</label>
+        <input class="form-control" name="token" placeholder="Personal Access Token" type="text" v-model="token" />
+        <button class="btn btn-primary" type="button" :class="{ disabled: !token }" :disabled="!token"
+          @click="confirmAsanaToken">Confirm</button>
+        <button class="btn btn-secondary" type="button" @click="clearToken">Cancel</button>
+        <div>
+          <a class="external-link" href="https://developers.asana.com/docs/authentication-quick-start"
+            target="_blank">How to get a
+            Personal Access Token?</a>
+        </div>
+      </div>
     </div>
 
     <div id="loading-wrapper" v-if="isLoading === true"></div>
   </div>
 
-  <div id="add-task"></div>
-  <div id="select-workspace"></div>
-
-  <script src="https://static.zdassets.com/zendesk_app_framework_sdk/2.0/zaf_sdk.min.js"></script>
   <script src="https://cdn.jsdelivr.net/jquery/3.0.0/jquery.min.js"></script>
-  <script src="./vue.min.js"></script>
+  <script src="https://static.zdassets.com/zendesk_app_framework_sdk/2.0/zaf_sdk.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vue@2.6.11"></script>
   <script src="./main.js"></script>
 </body>
 
